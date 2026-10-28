@@ -1,0 +1,57 @@
+# Popeye Fighter – bölüm / harita tasarımı
+
+Haritada, yolda veya bölüm düzeninde çalışmadan önce bu dosyayı oku. Değerler ve kurallar için `OYUN.md`ye bak.
+
+## Görünüm: aydınlık 2.5D derinlik
+- Hedef his: F.I.S.T. (Forged in Shadow Torch) gibi derinlikli 2.5D dünya, ama karanlık değil, güneşli ve renkli bir korsan limanı.
+- Karakterler 2D kesme (cutout) parçalardan oluşuyor. Gerçek 3D yok, derinlik şöyle veriliyor:
+  - Farklı hızda kayan arka plan katmanları (parallax): gökyüzü → uzak deniz/adalar → orta plan kasaba → yolun hemen arkasındaki duvarlar/nesneler.
+  - Yürünen zemin şeridine kodla hafif perspektif verilir (yüzey geriye doğru açılıyormuş gibi).
+  - Ön plan nesneleri (direk, zincir, kasa köşesi, uzun ot) kameraya en yakın katmanda karakterin önünden hızlı geçer.
+  - Işık hüzmeleri ve sis/pus şeritleri katmanların arasına konur.
+- Girilebilen yerler (depo kapısı, mağara ağzı, gemi ambarı): içeri girince arka plan iç mekân katmanlarıyla değişir, karakter aynı çizgide yürümeye devam eder.
+- Tüm nesne görselleri düz önden (front elevation) ya da tam yandan profil çizilir. 3/4 veya izometrik çizim kullanılmaz, çünkü kamera yana kayınca hep aynı yüzü göstererek sahte durur.
+- Önce tek tek nesneler (yol parçaları, bina cepheleri, sokak lambası, kasa, varil vb.) toplanır, tam sayfa arka planlar sonra ayrıca istenir.
+
+## Şu anki ön plan (cevre.js)
+- En arkada `GOK_AD` (cevre.js) ile seçilen görsel: `gok2.webp` sadece gökyüzü 3:1 (şu an), `gok.webp` eski gökyüzü+deniz. Görsel ekran boyunu tam kaplar, aynalanarak uç uca döşenir, 0.06 hızla kayar.
+- Evler: iki set var, `cevre.js` EV_SET ile seçilir (`ev0-7` eski düz cepheler, `yev0-7` yeni kulübeler; şu an `yev`; `EV_YOK` ile yev2 sarı samanlı ev kullanılmıyor). p=0.85 derinlik katmanında 2-3'lü kümeler, aralarda boşluk; birbirine binmez.
+- Kum + deniz (v0.368, `kumDeniz` cevre.js): evlerin altından ekranın altına; üstte `cevre/kum.webp` (bandın %36'sı, dünyada sabit, uç uca), altında `cevre/deniz.webp` (üstü kıyı köpüğü). Perspektifli yatay dilimler. Deniz kumdan bağımsız, dere gibi sürekli sola akar (`DZ_AKIS`), koşunca parallaksla hızlanır. Seyrek (2.5–6.5 sn'de bir) bir ön kazığın x ortasında, ekranın altındaki su hizasından küçük, saydam su sıçraması (`sicramaCiz`, kazıkların arkasında). Arka plan sesi `ses/deniz.mp3`: döngü, her kopyanın son 0.5 sn'si bir sonrakiyle üst üste biner.
+- Yerden fışkıran her şey tahta kıymığı (`fx/kiymik0-3.webp`, `karAt`/`tasSac`): yere vurma, iniş, düşme, yer yarma, kayma, yerde sürüklenen düşman. Görseller sola fışkırır, sağa gidenler aynalanır. Yer yarma görseli `fx/yarik.webp` (tahta yarığı, v0.371).
+- Yakın dağ `cevre/dag_yakin.webp` (v0.373, `dagCiz`): gökyüzü ile evler arasında, derinlik `DAG_P`=0.5 (evlerden uzak, yavaş kayar), dünya boyu `DAG_BOY`=1500, uç uca; alt kenarı zeminin arkasında kalır.
+- Zemin `cevre/zemin.webp` (toprak dokusu, eski kum yerine): gerçek ölçeğinde (`ZEMIN_W`=1700 dünya eni) perspektifli dilimlerle, dünyada sabit, uç uca.
+- Çevre objeleri (`cevre/o_*.webp`, `CV_OBJ`, v0.376 yeni set, v0.380 doygunluk %15 kısıldı: ateş, çift varil, çapa, kasalar, halat, yön levhası, saksı, varil, sandık, kütük/balta, harita kasası, fener, balık levhası, kasa): sadece kümeler arasındaki evsiz boşluklarda (evlere 90 pay, birbirine değmez, evin üstünde durmaz), dy 5–40 (az perspektif). Boy tablosu `CV_OBJ_BOY`, en/boy `CV_OBJ_ORAN`. Kümeler arası boşluk min 700.
+- Deniz ayrıca ekrana doğru akar (v0.368 hali: 2 saydam kopya, opaklık 0.55·sin(π·f), kayma DZ_PER=60, devir DZ_HIZ=0.22), sola akışla birlikte.
+- Evler, lambalar, objeler `cevreKur(t1,t2)` ile dizilir: ilk açılış sabit tohum (20261024 / 20261027), her yeniden başlamada (`yeniOyun`) yeni rastgele tohum. Lambalar varillerin üstüne gelmez.
+- (Eski) Sahil `cevre/sahil.webp` (kum → ıslak kum → köpük → sığ su, perspektifli): evlerin alt çizgisinden ekranın altına kadar. 28 yatay dilime bölünür; üst dilim ev katmanı hızında (0.85), alt dilimler giderek 1.18 hıza ve büyüklüğe çıkar (gerçek zemin perspektifi). İskelenin altında kodla gölge bandı.
+- Zemin: `cevre/tahta.webp` iskele şeridi uç uca döşenir (eni 2400 birim); altında en arkadaki gökyüzü/deniz görseli görünür. Ayak çizgisi görselin üstten %34.6'sı.
+- Kamera: ekranın altı ayak çizgisinin `ZGAP` (en çok `KAZIK_DIP`=450) altına kadar gösterir; tahtanın altında deniz görünür. Kazıklar uzun görsel (`cevre/kazik.webp`, eskisi `kazik_eski.webp`): tepeleri eski yerinde, dipleri ayak çizgisinin 820 altında, ekranda görünmez.
+- İskele kazıkları `cevre/kazik.webp` (boy 976 birim, uzun; altları suya iner) yolla aynı katmanda (p=1) ve aynı hızda, bir tahta şeridi eni aralıkla çift sıra: ön sıranın ortası iskelenin ön kenarında, karakterlerin önünde; arka sıra arka kenarda, %78 küçük (perspektif), alt yarısı tahtanın arkasında kalır.
+- Sokak lambaları (`lamba0`, `lamba1`, yüksek çözünürlük) iskelenin arka yarısında rastgele 1800–3800 birim aralıkla, varillerin yanına gelmez.
+- Kasa, palmiye, fener gibi nesneler netlik yetersiz olduğu için kaldırıldı; daha net görseller gelince aynı mantıkla (evlerin önü, iskelenin arka yarısı) eklenecek.
+
+## Metroidvania / geri dönüş (backtracking)
+- Bölümler geri dönülerek yeniden keşfedilecek şekilde tasarlanır.
+- **Zıpkınlı kanca** (v0.327'den beri oyunda, `js/zipkin.js`, kurallar `OYUN.md` Zıpkın): kola takılı, Örümcek Adam gibi atılır, bir yere takılır; oyuncu kendini çeker, tırmanır, sallanır. Şimdilik buton ile her zaman açılabiliyor; metroidvania için ileride bölümde bulunup kazanılan bir eşya yapılabilir.
+- Zıpkın şu an her nesneye takılır (`zpkHedef`: düşman, varil, kazık, lamba, iskele, ev pikseli). Yeni nesne eklenince `zpkHedef`e de eklenmeli; derinlik katmanındaki (p<1) nesnelerde çapa `zpkCapa` ile katman hızında kayar.
+- Her bölümde ilk gelişte görülen ama kancasız çıkılamayan **yukarı alanlar** olsun: yüksek iskeleler, çatılar, gemi direklerinin tepesi, uçurum üstleri.
+- Kancanın takılabileceği noktalar oyuncunun anlayacağı şekilde belli olsun: demir halkalar, kirişler, direk uçları, makaralar.
+- Kanca alındıktan sonra eski bölümlere dönülünce bu yukarı alanlardan yeni yollar, kısayollar ve gizli ödüller (sandık, ıspanak, XP) açılır.
+- Yeni yetenekler (yetenek ağacı) de benzer şekilde eski yerlerde yeni yollar açabilecek biçimde düşünülür.
+- Zemin dokusu (`zemin.webp`) üstte dağın alt çeyreğine kadar uzar (`kumDeniz`: ek dilimler, deniz yerinde kalır); dağ (`dagCiz`) zeminden SONRA çizilir, yani zemin dağın altına girer (v0.377).
+- v0.379 derinlik: evler EV_P=0.75 (daha uzak/küçük), tabanı iskele arka kenarından EV_GERI=70 geride; dağ DAG_P=0.35, DAG_BOY=2300 (daha büyük ve uzak), tabanı DAG_GERI=260 geride (evlerin arkasında). Zemin üst dilimleri dağ hızında (DAG_P), ev tabanında EV_P, aşağı doğru iskeleye yaklaşır: zıplayınca zemin ile dağ kopmaz. Sokak lambaları LAMBA_GERI=100 (tahtadan taşmaz).
+- v0.381 zemin dokusu: tek görsel, bandın tüm boyuna (dağın altından denize kadar) büyütülür, dikeyde tekrar etmez; yana uç uca döşenir. Tüm zemin dilimleri aynı yatay hızda (ev katmanı) kayar (eski dilim dilim basamaklanma yok); dilimler sadece dikey parallaks için (zıplayınca dağla kopmaz).
+- v0.382 kamera: genel zoom ZOOM=0.85. Ölü bölge: kamera yerde kalır, sadece kafa ekranın üst %10'una girince yukarı takip eder; 500 birim üstü yükseklikte kamera geri çekilir (1600'de en çok %20, `zJ` dongu.js). Arka plan (dağ, zemin, deniz, evler, objeler) dikeyde sabit: zıplayınca oynamaz, sadece yatayda parallaks (zıpkın ev çapası da buna göre).
+- v0.383 katmanlar: arka katman dağ (DAG_P 0.35), orta katman zemin+evler+objeler (EV_P 0.75, birlikte kayar); hepsi dikeyde sabit. Sıra: dağ ÖNCE, zemin SONRA çizilir: zemin üst kenarı (koyu çizgi) dağı keser, dağın altı (%6) zeminin arkasında kalır, böylece kopma ve "yol dağın altından kayıyor" görüntüsü olmaz.
+- v0.385: yeni dağ görseli (yeşil üstlü kayalık uçurum), DAG_BOY=4600 (2x); evler EV_GERI=160 (daha geride); zemin üst ucu dağ boyundan bağımsız (138). Kamp ateşi (o_ates) üstünde kodla çizilen sürekli harlı alev (`atesCiz`): üst odunları örter, alt odunlar az görünür, normal boy.
+
+## Deneme dalı: platform bölümü (v0.386)
+- `js/platform.js`, görseller `www/plt/*.webp` (kullanıcının yer parçası sayfasından kesildi; yarı saydam kaya/taş/mantar katmanları kullanılamadı). Ölçek `PLT_K`=5.5 (piksel → dünya), `PAR` ayak çizgisi oranı.
+- Parçalar: b0–b4 köprü, s0–s3 sehpa, l0–l1 kütük, k0 küçük kütük, r0 demirli kiriş, t0–t2 kesik ağaç, a0–a3 tekerlekli araba, y0–y3 yay (y3 kırmızı süper yay).
+- Platformlar tek yönlü: alttan geçilir, üstüne basılır (`pltDestek`). Tipler: sabit, yay (k: zıplatma katı), yat (sağa-sola araba, oyuncuyu taşır), dik (aşağı-yukarı), dus (basınca 0.45 sn titrer, düşer, 2.5 sn sonra geri gelir).
+- Zemin çukurları `ZEMIN` (ayar.js) -6000; çukurda tahta iskele/kazık/lamba çizilmez (`zeminKlip`). Çukura düşen oyuncu -40 can, son güvenli noktaya döner; düşman kaybolur.
+- Yükseltilmiş yollar `YOL`: eski tahta zemin uç uca, kazıksız.
+- Kamera: son basılan yüzeyin yüksekliğini takip eder (`S.camZ`), kafa ekranın üst %20'sine girince yukarı izler.
+- Bölüm 1 düzeni `BOLUM1`: zemin parçaları [..4200] [4900–8200] [10800–14000] [17600–21500] [25500–28500] [30600..]; boss x=34000. Düşmanlar ve variller sadece zeminde.
+
+- v0.387: çevre objelerinden kamp ateşi, saksı ve baltalı kütük kaldırıldı.
