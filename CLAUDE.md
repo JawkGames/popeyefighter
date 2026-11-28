@@ -1,0 +1,91 @@
+# Popeye Fighter – proje notları
+
+Mobil yan kaydırmalı dövüş oyunu. Canvas 2D; kod `www/js/*.js` dosyalarına bölünmüş (modül yok, hepsi ortak global kapsamda, `index.html`deki sırayla yüklenir). Kullanıcı Türkçe yazar.
+
+## Çalışma kuralları (her değişiklikte)
+- **Bu bir MOBİL OYUN (Android uygulaması).** Asıl ürün telefona kurulan uygulama: işin sonu AAB (Google Play) + APK (telefona kurulum). Tarayıcıdaki (GitHub Pages / raw.githack) hâli SADECE test içindir. Her şeyi telefonda uygulama olarak çalışacak şekilde yaz: dokunmatik, performans (zayıf telefonlar), Android geri tuşu, arka plana gidince duraklatma, ekran açık kalma, tam ekran (immersive), titreşim izni. Manifest'te donanım özellikleri (uses-feature) hep `required="false"`.
+- Mobil davranışlar `js/mobil.js` (v0.443): `geriTus()` (MainActivity.java geri tuşu çağırır: panel kapat / oyunda menü aç / girişte 2 sn içinde 2. basış uygulamayı kapatır), arka plana gidince menüyle duraklat, otomatik grafik (oyuncu elle seçmediyse `AYAR.grEl` yok iken ilk 1 dk FPS < 38 ise grafik bir seviye iner). MainActivity: `FLAG_KEEP_SCREEN_ON`, immersive tam ekran. Manifest: `VIBRATE` izni.
+- Cevaplar kısa, Türkçe; istenmeyeni anlatma. Kopyalanacak şey kod bloğunda. İndirme isteniyorsa link ver.
+- Kod değişikliği: Edit ile küçük düzenleme yap; dosyanın tamamını okuma, Grep ile ilgili yere git.
+- Her değişiklikte ekrandaki sürümü artır: `OYUN_SURUM` (`js/ayar.js`) ve `index.html`/`css/oyun.css`deki tüm `?v=` sürüm değerlerini aynı sürüme getir. Biçim `v0.XXX` (v0.438, v0.439 …); v1.0'a henüz geçilmedi (oyun bitince). Görsel/ses değişirse `SURUM='?v=..'` de artır. Android `versionName` bu değerden alınır (`.github/workflows/android.yml`).
+- Değişiklikleri görsele bakmadan (ekran görüntüsü/görsel inceleme yok) yap; hata olursa kullanıcı söyler.
+- Kullanıcının verdiği tüm görseller: ortalanmış, sağa bakan, düz duran çizimler. Buna göre hizala/kullan.
+- `node --check` ile söz dizimi kontrolü yap; ayrıca tüm js dosyalarını index.html sırasıyla birleştirip `node --check` et (dosyalar ortak global kapsamda: aynı adlı `const` başka dosyada varsa oyun boş açılır). Oyunu açıp test etme, ekran görüntüsü alma (özel görsel durum hariç). APK/AAB/Actions build yok.
+- Her değişiklikten sonra `main`e push et. Önce GitHub'da yerelden yeni sürüm var mı bak, varsa çek.
+- Her push'ta: değişen kuralları/değerleri ilgili .md'ye (OYUN.md, BOLUM.md, CLAUDE.md) de kaydet ve bekleyen yapılacaklar listesini de aynı push'ta yap (liste boşalsın).
+- **KESİN KURAL:** Yapılacaklar listesinde bekleyen iş varsa, HERHANGİ bir şey push'a gittiğinde (ne olursa olsun, hangi dal olursa olsun) listedekilerin HEPSİ o push'ta yapılır. Listeyi yapmadan push etme.
+- Commit yazarı `Claude <noreply@anthropic.com>`; commit sonuna sistemin verdiği Co-Authored-By ve Claude-Session satırlarını ekle.
+- İstekleri liste yap: kullanıcı peş peşe iş söylerse sadece sonuncuyu tekrarla; push gerektiren iş veya ses/görsel gelince listeyi birlikte yap.
+- Satır sonu açıklaması (`// ...`) eklerken arkasında kod kalmadığından emin ol: yorum, satırın devamındaki kodu (ör. `ctx.restore()`) yutar ve çizim bozulur (v0.364 hatası).
+- Arayüz yazıları sadece `js/dil.js` `DILLER`'de (17 dil: en, tr + es hi pt fil id af ru ko ms it de el fr ar ur; yeni dil = yeni blok. Sonradan eklenen dillerde sadece kısa oyun içi/menü yazıları çevrili, yet_*/anti_*/ipucu/a_* İngilizceden gelir; yeni anahtar eklenince en+tr yeter, eksik anahtar İngilizceden düşer). Koda yeni yazı eklerken düz metin yazma, anahtar ekleyip `dil('anahtar')` kullan (HTML: `data-l`/`data-lh`/`data-la`). Yerel değişkene `dil` adı verme.
+- Harita, yol, bölüm düzeni ve arka plan işlerinde önce `BOLUM.md`yi oku (2.5D derinlik, metroidvania geri dönüş, ileride gelecek zıpkınlı kanca).
+- Zorluk: düşman canı `ZK()`, düşman hasarı `ZKD()` (dusman_kur.js; hasar veren yeni kodda `ZKD()` kullan). Düşman XP'si `XP_T`.
+- Oyunla ilgili sorular (canlar, hasarlar, XP, yetenekler, kontroller) için önce `OYUN.md`ye bak, koda girme. Bir değer/kural değişince `OYUN.md`yi de güncelle.
+- Oyun linki (normal, GitHub Pages; `www/` değişince her push'ta otomatik yayınlanır, `.github/workflows/pages.yml`): `https://cemrebaou.github.io/popeyefighter/`. Hızlı test linki: `https://raw.githack.com/cemrebaou/popeyefighter/main/www/index.html?v=XXX`.
+- Mağaza görselleri `magaza/` (Play simgesi 512, tanıtım görseli 1024x500). Uygulama simgesi/açılış: `android/app/src/main/res` (mipmap-*, drawable*/splash.png, `drawable/ic_launcher_bg.xml` gradyan zemin); web simgesi `www/favicon.png`, `www/apple-touch-icon.png`; açılış görseli `www/ui/acilis.webp` (#acilis, üst sabit, ekranı kaplar, alt taşar).
+- Yükleme: açılış görseli (`#acilis`, siyah-beyaz katman `#ac_gri`, maske `--p` soldan sağa renklenir; v0.447'de bar kaldırıldı) = yükleme ekranı; `giris.js` sonundaki `bak()` giriş görselleri (`gKalan`), oyun görselleri (`kalan`, `YUK_TOP/YUK_BIT`), bölüm hazırlığı (`HAZ_OK`: paket + ekran boyu kopyalar + ısınma, `dongu.js` `bolumHazirla`) ve sesler (`SES_TOP/SES_BIT`, `sesKur()` sayfa açılınca çağrılır) bitince kaldırır (`YUK_OK`). Yeni ses/görsel bu yükleyicilerle eklenirse kendiliğinden beklenir.
+- **DOKU (v0.475, `js/ayar.js`): oyunda hiçbir görsel doğrudan çizilmez.** `ctx.drawImage(görsel…)` yazma; kaynağı `dk(görsel, oran)` / `dkh(görsel, ekrandaBoyPx)` / `dkw(görsel, ekrandaEnPx)` ile al ve hedef en-boyu mutlaka ver (kopyanın pikseli asıl görselden küçüktür; `img.width/height` asıl ölçüyü verir). `dk` görselin ekran çözünürlüğüne küçültülmüş kopyasını (ImageBitmap; dosyadan arka planda `fetch`+`createImageBitmap` ile, en çok 4 eşzamanlı) döndürür; daha büyük oran istenirse arka planda yenisi hazırlanır. `DK_KO` = dünya birimi→cihaz pikseli (en yakın zoom), `DK_OY` oyuncu parçası oranı, korsan parçası `krp` içinde `KRP_S*DK_KO`. `koyult()` / `soluk()` artık tuval değil **tanım** döndürür (`{ana,al|sol}`), çizim küçük kopyadan türetilir (`dkTur`); siyah beyaz `dkGri(kopya)`. Görseller `yukle()`'de çözülmez (decode yok). Yeni çizilen görseli `dongu.js` `onIste()` listesine (ya da `cevreHazir` / `temaHazir`) ekle ki yükleme ekranında hazırlansın; eklenmezse ilk çizimde asıl görsel çizilir (kısa takılma). Tam boy tuval kopyası (yara kaplaması dahil) üretme: tuvali `DK_OY` / `KRP_S*DK_KO` ölçeğinde kur.
+- **Bölüm paketleri (v0.475):** tema görselleri `paketEk('kar'|'misir'|'batak'|'bati', yükleyici, önekler)` ile kaydedilir, `paketAd(ZOR_N)` paketi bölüme gelince yüklenir; 1-2. bölüm (liman), oyuncu, efekt ve arayüz ortak (açılışta). `yeniOyun` sonunda `bolumGecis()`: bölüm değiştiyse `PK_BEK` ile oyun bekler, `bolumHazirla` paketi yükler + kopyaları hazırlar + ısıtır. Yeni tema eklerken görsellerini `paketEk` içine koy, ayarını `xCfg()` fonksiyonunda ver (`bolumCfg`, `temaHazir` kullanır).
+- **Kamera `KX` (v0.475):** ekran x = `W/2+(x-KX)*SC`. `S.x` oyuncunun konumu, kamera değil (dalga kilidinde kamera durur). Dalga sistemi `dusman_kur.js` `AR` (ayrıntı `OYUN.md` v0.475).
+- Performans: her karede `ctx.filter` kullanma (çok pahalı). Siyah beyaz çizim için `GRI=true` + `gri(im)` (korsan.js, bir kez hazırlanan kopya). Her karede DOM'a yazma (değer değişince yaz).
+- Grafik seviyesi `GR` (ayar.js; 2 yüksek, 1 orta, 0 düşük; `GR_DPR=[1,1.35,2]` çözünürlük sınırı; menüde `#m_gr`, `grUygula` menü kapanınca). Yeni pahalı efekt eklerken `GR` ile kapat (parlama/shadowBlur sadece `GR===2`, parçacık/süs efektleri `GR>0`). Seviyelerin içeriği `OYUN.md` v0.440.
+- Oyun ekranında sağ üstte iki düğme: ayarlar `#menuB` ve solunda yetenek ağacı `#agacB` (çapa `ui/seviye.webp`, yetenek açılabiliyorsa `ui/seviye_ok.webp`). Menünün sağ sütunu: kombolar (`ui/m_kombo.webp`), grafik (`ui/m_gr0-2.webp`), devam. Yükleme çubuğu `ui/yuk_bos.webp` + `ui/yuk_dolu.webp`.
+- Android build (`.github/workflows/android.yml`, elle çalıştırılır): AAB + test APK artık Actions artifact olarak değil **Releases**'e yüklenir (`https://github.com/cemrebaou/popeyefighter/releases`), son 2 release kalır. Artifact kotası (hesabın tüm özel depoları ortak) dolunca build hata veriyordu.
+- Müzik (v0.485, `ses.js` `muzikGuncelle/muzikCal/muzikIste`): her bölümün kendi döngü müziği `ses/m_b1..m_b9.mp3` (bölüme gelince indirilir, eskisi bellekten çıkar; hazır olana kadar `bgm_ambient`), boss: kaptan `bgm_silah`, kılıç ustası `bgm_kilic`, diğer boss'lar `m_boss`. Hepsi CC0 (OpenGameArt; kaynak listesi `OYUN.md` v0.485). Yeni müzik: mono 72 kbps mp3, en çok ~80 sn.
+- Öğretici `js/ogretici.js` (dongu.js'ten önce yüklenir; `ogrBasla()` giris.js BAŞLA'da; `A` adım tablosu; kayıt `pf_ogr`; test `?ogretici`). Ayrıntı `OYUN.md` v0.441.
+
+- Bölümler / harita: `ZOR_N` (0 = 1. bölüm). 1-2 liman (cevre.js), 3+ karlı dağ (`js/kar.js`, `KARLI()`; `karArka` arka plan, kar adım sesi `ADKR`, yarık sesi `YARS`). PC testinde 1/2/3 tuşu `bolumGit(n)`. Giriş ekranında pusula `#g_ogr` öğreticiyi açar. Çapa ışığı `#agacB.ok::after`.
+
+## AAB ALMA KURALLARI (her AAB'de, sırayla)
+1. **Kontrol et:** reklam kimlikleri gerçek mi (test kimliği `ca-app-pub-3940256099942544` YOK; `reklam.js` RK_ID + Manifest APPLICATION_ID dolu), AAB imzalı mı (Actions secret KEYSTORE_*; AAB'de `META-INF/*.RSA` olmalı), targetSdk Google'ın istediği seviyede mi, Manifest'te `uses-feature` hep `required="false"`, immersive tam ekran + çentik (yanlarda boşluk yok), geri tuşu, titreşim izni.
+   - **Zorunlu donanım beyanı hatası** ("Zorunlu donanım özelliği beyanları, uygulamanızın kullanılabilirliğini kısıtlıyor", ör. `android.hardware.screen.landscape`): `screenOrientation` yatay/dikey olunca Play bunu zorunlu sayar. Manifest'te mutlaka `<uses-feature android:name="android.hardware.screen.landscape" android:required="false"/>` (ve `...screen.portrait` aynı şekilde) olmalı; başka `uses-feature` da hep `required="false"`. AAB'den önce kontrol et (v0.445'te eklendi).
+   - **AAB zip'siz verilir:** AAB ve APK Releases'e düz `.aab` / `.apk` dosyası olarak yüklenir (zip içinde değil); kullanıcıya doğrudan bu dosyaların indirme linki verilir.
+   - **Optimizasyon (her AAB'de):** `android/app/build.gradle` release: `minifyEnabled true` + `shrinkResources true` + `proguard-android-optimize.txt`; Capacitor/AdMob keep kuralları `android/app/proguard-rules.pro`; `mapping.txt` AAB ile birlikte Releases'e yüklenir (Play Console'a eşleme dosyası olarak verilir).
+2. **Eksik/sorun VARSA AAB ALINMAZ.** Cevabın en üstüne kocaman **⚠️⚠️ DİKKAT!!! ⚠️⚠️** yaz, sorunları kısa madde madde söyle ve kullanıcıya "onaylıyor musun, düzelteyim mi?" diye sor. **Onay gelmeden düzeltme yapılmaz**, AAB alınmaz.
+3. **Sorun yoksa (sormadan yapılır):** PC/tarayıcıya özel şeyler uygulamadan çıkarılır (tam ekran düğmesi, klavye kontrol modu → `UYGULAMA` bayrağı kontrol.js; tarayıcıda kalır) ve gerekli optimizasyon yapılır; sonra sürüm artırılır, push edilir, `android.yml` çalıştırılır, Releases'ten AAB + APK indirme linki verilir.
+
+## Dosya yapısı
+- `www/index.html` sadece HTML iskeleti + script sırası. Stil: `www/css/oyun.css`.
+- `js/dil.js` (ilk yüklenir) dil sistemi `DILLER`, `dil()`, `dilSec()`, `DIL_DIN` · `js/ayar.js` sürüm, görsel yükleyici, sabitler, `S` · `girdi.js` klavye/tuşlar/sensör/kol sürükleme · `el.js` el konumu/hızı, `DUS`, `MERMI`
+- `ozel.js` özel hareketler (pençe, süpermen, yarık, alkış, blok…) · `mermi.js` aduket, kaptan mermisi · `dusman_kur.js` düşman yerleşimi, `yeniOyun`
+- `cevre.js` liman ön planı (tahta iskele, evler, nesneler, ön çalılar; `cevreArka`/`cevreOn`, görseller `www/cevre/`) · `ses.js` sesler · `efekt.js` kar, fx, kan · `savas.js` vuruş/tutma/yırtma, `dusmanGuncelle` · `korsan.js` korsan AI, `KSK`, `KPZ`, korsan çizimi
+- `yetenek.js` yetenek ağacı (`YET` düğümler [x,y,ikon,ad,puan], `YBAG` bağlar, `AG` seviye/XP/puan, `xpKazan`, `YV(k)` yetenek açık mı — hareketler bununla kilitli, `canCal` can çalma, `ispCep`; ikonlar `ui/ytN.webp`, ağaç `ui/agac.webp`) · `anti.js` anti yetenekler (ölünce zorunlu seçim, `YA(k)`, `antiHasar`/`antiVurSonra`/`antiGuncelle`/`antiCiz` ateş efekti, bumerang `BCK`; kurallar `OYUN.md`) · `dyara.js` düşman yaraları (`dyCiz`, ten ızgarası `dyara_veri.js`; oyuncu yarası `yrCiz` yara.js, `yaraCiz` efekt.js kesik yarası — adlar çakışmasın) · `hud.js` ekran yazıları, bar/XP yuvarlağı/kalp · `kombo.js` `HAREKET`, kombo ağacı/listesi · `oyuncu.js` oyuncu pozu ve çizimi · `demo.js` yetenek önizlemesi (ağaçta yeteneğe dokununca arkadaki oyunda hareket sessizce döngüyle oynar; `DEMOLAR`, başta tüm durum kaydedilir, ağaç kapanınca geri yüklenir; `DEMO` açıkken ses/titreşim/XP yok) · `menu.js` sağ üst menü (`menuAc`, `menuAcik`; ses/müzik `AYAR` ses.js'te, `SFXC()`/`MUZC()` çıkışları; sensör, tam ekran, dil, kombolar, yetenekler; görseller `ui/m_*.webp`: yuvarlak simgeler 256x256 aynı stil; panel `m_panel.webp` kurdelesiz, kurdele ayrı `m_kurdele.webp` (`.m_pan/.tl_p/.hak_p::before`, panelin üstüne taşar, alt ucu çerçevenin kahverengi tahtasında biter; başlık yazıları `top:-8.6%`); sağdaki butonların hepsi mavi `m_btn_m`, simgeler sola hizalı aynı sütunda) · `giris.js` giriş ekranı (`girisAcik`, `girisAc`): oyunun çevre görselleriyle (cevre/*.webp) kurulan hareketli liman (U = ekran yüksekliğinin %1'i, sahne ortadan kurulur, geniş ekranda gök/dağ/iskele/deniz yanlara uzar; su akar, bulut kayar, fener titrer, baca dumanı, bayrak); BAŞLA oyunu başlatır, AYARLAR menüyü açar; açıkken oyun durur · `reklam.js` AdMob (`@capacitor-community/admob`, `RK_ID` birimler, `rkGoster(tur,cb)`, `rkBanner`, `rkKurtul` ölünce kurtulma, `rkPuan` +1 skill puanı `AG.ek`, `hakAc` BİR HAK DAHA ekranı; tarayıcıda reklam yok, ödül hemen verilir) · `kontrol.js` kontrol modları (`KMOD`, `kmodSec`), tuş ataması (`TUS`/`PADT` aksiyon→tuş, varsayılan `TUS_VAR`/`PAD_VAR`, `tusAta`, localStorage `pf_tus`/`pf_pad`), klavye/joystick aksiyonları (`aYumruk`, `aTekme`, `aTut`, `aYirt`, `ikiliBas`, `klvAksiyon(aksiyonAdı)`, `GIR`), joystick (`padOku`), tuş listesi (`TL`, `tuslarAc`), önizlemede parmak (`PARMAK`, `parmakCiz`) · `usta.js` kılıç ustası boss (`ustaBaslat/ustaKontrol`: takla, geri sıçrama, atılma, eğilme, kaçış) · `boss.js` (v0.484) diğer boss'ların özel mekanikleri: `bossKontrol` (savas.js `dusmanGuncelle` çağırır; `e.bz` özel hareket durumu, `e.bT` bekleme), `bossGuncelle`/`bossFxCiz` (`BFX` şok dalgası ve kökler), `bossPoz`, `bossVur`, `bossCagir`; z firavun şok dalgası + mumya çağırma, t yosun lordu iyileşme + kök, x demir şerif hücum + öfke. Yeni boss = burada yeni özellik (hiçbir boss diğerinin aynısı olmasın) · `dongu.js` arka plan, `ciz`, `dongu` (en son yüklenir)
+- Yeni dosyada en üstte `'use strict';`. Yükleme anında çalışan kod sadece kendinden önceki dosyalardaki şeyleri kullanabilir. `www/parca|fx|yuz|ui/*.webp` görseller, `www/ses/*.mp3`, `www/font/*.woff2` (yerel fontlar).
+- Görseller WebP. Yükleyici `yukle()`; önbellek `SURUM`.
+
+## Kodda başlıca yerler (Grep ile bul)
+- `KSK` korsan başına görsel/eklem tablosu: k yumruk, b bıçak, p tabanca (kaptan/patron), h kanca adam, m kılıç ustası boss, f tabancalı kadın (`sk` anahtarı `kc`yi görünüşte ezer).
+- `KPZ`, `korsanPoz`, `ciziKorsan` poz ve çizim. Ölü düşmanlar `cesetYap`/`parcaYap` ile bir kez resme çevrilir (`CESET`, `cesetCiz`): kalıcı, yüksüz. `korsanAI` düşman yapay zekâsı (`acd` ateş/saldırı, `mcd` yakın dövüş).
+- `S` oyuncu durumu; `PK()` pençe modu 2x hasar, `PENCE_EL`; `hasarKat/hasarCiz` 11 hasar modeli arası geçiş.
+- Efekt: `karAt`, `tasSac`, `fxEkle/fxCiz`, `patlat`, yarık `catlakGuncelle/catlakCiz/yerYumrukVur`.
+- Ses: `savurCal`, `ziplaCal`, `adimCal(x,g)`.
+- Döngü: `dongu`, dt üst sınırı 0.05.
+- Arka plan: dağ `fx/dag`, zemin `fx/yol`, ağaçlar `AGAC[0..7]`.
+- Bıçak modu (`S.pence`): `penceVur` saplamalar (`HAREKET` pd/pa/pu/py), `yerdekineAtla`/`ustGuncelle`/`ustKalk` yerdekinin üstüne atlama (`S.ust`), `dagAtla`/`dagGuncelle` ileri kaydırınca bıçaklı uçma (1 enerji, 50 hasar, ilk çarptığını serip üstüne çıkar), turuncu parlama `dongu.js` shadow.
+
+## Görsel parça standardı (yeni karakter)
+- Her parça aynı boyutlu karede (örn. 500x500), arka plan saydam, parça hep sağa bakar, bağlantı noktası karede sabit yerde.
+- Aynı karakterin parçaları aynı ölçekte. Kenar boşlukları script ile kesilir, ofset tabloya yazılır.
+- **Kota tasarrufu taktiği (tek sayfada 9 parça):** Görsel üretim kotasını harcamamak için her parçayı ayrı ayrı üretme. Toplamda 9 parça biriktiğinde (veya bu oyundaki gibi kol, bacak, ayak, gövde vb. çok parçalı bir karakter istendiğinde) parçaları tek bir 3x3 sayfada (9 parça birden) üretip kes. Az sayıda parça istendiğinde gerekmedikçe tek tek görsel harcama, biriktirip toplu (9'lu) üret.
+
+## Yapılacaklar
+- (boş)
+
+## Sürüm geçmişi kuralı (her zaman son 2 sürüm)
+GitHub'da bu repoda her zaman sadece son 2 sürüm (commit) tutulur. Yeni sürüm push edilirken en eski (3.) sürüm silinir:
+1. Yeni değişikliği commit et.
+2. Geçmişi son 2 commit kalacak şekilde yeniden yaz; bu 2 commit'in dosyaları, mesajı, yazarı ve tarihi aynen korunur, daha eskiler silinir.
+3. `git push --force-with-lease` ile gönder (kullanıcının kalıcı izni var).
+4. Push'tan sonra GitHub'da commit sayısının 2 olduğunu kontrol et.
+Son sürümün dosyaları asla değişmemeli. Ek dallar da aynı kurala uyar.
+
+Örnek (son 2 commit'i koruyup eski geçmişi silme):
+```bash
+H=$(git rev-parse HEAD); P=$(git rev-parse HEAD~1)
+N1=$(git log -1 --format=%B $P | git commit-tree $P^{tree})
+N2=$(git log -1 --format=%B $H | git commit-tree $H^{tree} -p $N1)
+git push --force-with-lease=main:$H origin $N2:refs/heads/main
+git reset --hard $N2
+```
+
+- İmza: ortak upload key (JawkGames org secrets UPLOAD_KEYSTORE_BASE64 + UPLOAD_KEY_PASSWORD, alias upload). Repo: github.com/JawkGames/popeyefighter

@@ -1,0 +1,124 @@
+'use strict';
+// Ekran bilgisi (can/enerji barı, kalp, kombo no, yazılar)
+const BAR={en:250,hp:HPMAX};      // ekranda görünen enerji/can (yumuşak)
+// Can + enerji barı (sol üst): boş görselin üstüne dolu görseller, eğik uca paralel çizgiyle maskelenir. Kalp: can dolarken atar (küçük kalp görseli + kalp sesi)
+const BARG=600,BARY=285;      // görsel boyutu
+const barGen=()=>Math.min(340,W*0.28,H*0.5);      // ekrandaki genişlik: telefonda küçük, büyük ekranda en çok 340
+const KALP={on:false,t0:0,n:-1,src:null};
+function kalpSesDur(){if(KALP.src){try{KALP.src.stop()}catch(_){}KALP.src=null}}
+function kalpGuncelle(){
+  const ak=S.durum==='oyun'&&S.hp>0&&S.hp<HPMAX&&((S.t-(S.hasT||-9)>=(S.regB||6)&&!antiDolumYok())||(S.blok&&YV('W')));      // can dolma modu (düşman vurunca / can dolunca biter)
+  if(ak&&!KALP.on){KALP.on=true;KALP.t0=S.t;KALP.n=-1;kalpSesDur();if(AC&&AC.state==='running'&&KALPS&&!DEMO){const src=AC.createBufferSource();src.buffer=KALPS;src.connect(SFXC());src.start(0,0,Math.min(1,KALPS.duration));KALP.src=src}}      // can dolmaya başlayınca kalp sesi bir kere, 1 sn (gup gup gup gup)
+  if(!ak&&KALP.on){KALP.on=false;kalpSesDur()}
+  if(!KALP.on)return false;
+  return true;
+}
+// Kalp atışı: "lub-dub" (iki yumuşak vuruş). Normalde hafif ve can azaldıkça hızlanır; can dolarken sesle eş zamanlı, güçlü atar. Ölünce durur.
+const KAT={ph:0};
+const kAt=(t,c,w)=>Math.exp(-((t-c)/w)*((t-c)/w));
+function kalpOlcek(dt,dolar){
+  if(S.hp<=0)return 0.95;
+  if(dolar){const t=(S.t-KALP.t0)%1.5;return 1+0.14*kAt(t,0.07,0.06)+0.08*kAt(t,0.33,0.07)}
+  const T=1.15-0.5*kisit(1-S.hp/HPMAX,0,1);KAT.ph=(KAT.ph+dt/T)%1;const t=KAT.ph*T;      // can azaldıkça kalp hızlanır
+  const g=0.035+0.04*kisit(1-S.hp/HPMAX,0,1);return 1+g*kAt(t,0.07,0.06)+g*0.6*kAt(t,0.3,0.07);
+}
+const XPC={x:134,y:130.5,r:111.5};      // çerçevedeki yuvarlak (görsel px)
+function xpYuvarlak(dt){      // yuvarlak boşluk XP ile alttan dolar; dolunca seviye atlar ve boşalır
+  const hed=AG.xp/xpGerek(AG.lv);
+  if(BAR.lv===undefined){BAR.lv=AG.lv;BAR.xp=hed}
+  if(AG.lv>BAR.lv){BAR.xp+=(1.02-BAR.xp)*Math.min(1,dt*6);if(BAR.xp>=0.995){BAR.xp=0;BAR.lv=AG.lv;BAR.flT=S.t}}      // önce tam dolar, sonra boşalır
+  else{if(AG.lv<BAR.lv)BAR.lv=AG.lv;BAR.xp+=(hed-BAR.xp)*Math.min(1,dt*5)}
+  const f=kisit(BAR.xp,0,1);
+  ctx.save();ctx.beginPath();ctx.arc(XPC.x,XPC.y,XPC.r,0,Math.PI*2);ctx.clip();
+  if(f>0.003&&R.bar_kalp){
+    const y0=XPC.y+XPC.r-2*XPC.r*f,dl=GR>0&&f<0.995?4:0;      // LOW modda düz kesim (dalga sinüsü yok)
+    ctx.save();ctx.beginPath();
+    if(dl>0){ctx.moveTo(XPC.x-XPC.r-2,XPC.y+XPC.r+2);for(let x=-XPC.r-2;x<=XPC.r+2;x+=8)ctx.lineTo(XPC.x+x,y0+Math.sin(x*0.055+S.t*3.2)*dl);ctx.lineTo(XPC.x+XPC.r+2,XPC.y+XPC.r+2);ctx.closePath()}
+    else{ctx.rect(XPC.x-XPC.r-2,y0,XPC.r*2+4,XPC.y+XPC.r+2-y0)}
+    ctx.clip();
+    ctx.translate(XPC.x,XPC.y);ctx.scale(1.1,1.1);ctx.translate(-129.5,-128.5);ctx.drawImage(dkw(R.bar_kalp,barGen()*1.1),0,0,BARG,BARY);      // mavi dolu yuvarlak
+    ctx.restore();
+  }
+  const fu=S.t-(BAR.flT||-9);if(fu<0.8){ctx.globalCompositeOperation='lighter';ctx.fillStyle='rgba(255,220,90,'+(0.55*(1-fu/0.8))+')';ctx.fillRect(XPC.x-XPC.r,XPC.y-XPC.r,XPC.r*2,XPC.r*2)}      // seviye atlayınca parlar
+  ctx.restore();
+}
+// Cam: barların ve XP yuvarlağının üstünde bombeli saydam cam. Bar camı bir kez hazırlanır (dolu bar görselinin şekliyle maskeli): üst kenarda parlak bant, altta hafif gölge.
+const CAM={};
+function camHazirla(ad,im,dy){
+  if(CAM[ad]||!im||!im.width)return CAM[ad];
+  const k=Math.min(2,Math.max(0.4,barGen()*DPR/BARG)),c=document.createElement('canvas');c.width=Math.ceil(BARG*k);c.height=Math.ceil(BARY*k);const x=c.getContext('2d');      // v0.475: cam tuvali ekrandaki bar boyunda (eskiden hep 2 kat büyüktü)
+  const bant=(sh,renk)=>{const t=document.createElement('canvas');t.width=c.width;t.height=c.height;const y=t.getContext('2d');
+    y.drawImage(im,0,0,t.width,t.height);y.globalCompositeOperation='destination-out';y.drawImage(im,0,sh*k,t.width,t.height);y.globalCompositeOperation='source-in';y.fillStyle=renk;y.fillRect(0,0,t.width,t.height);x.drawImage(t,0,0)};
+  x.drawImage(im,0,0,c.width,c.height);x.globalCompositeOperation='source-in';x.fillStyle='rgba(255,255,255,.07)';x.fillRect(0,0,c.width,c.height);x.globalCompositeOperation='source-over';      // hafif cam pusu
+  bant(dy,'rgba(255,255,255,.32)');bant(dy*0.35,'rgba(255,255,255,.35)');bant(Math.max(2,dy*0.08),'rgba(255,255,255,.55)');      // üstte katmanlı parlaklık: bombeli görünüm
+  bant(-dy*0.3,'rgba(10,25,45,.22)');      // alt kenarda gölge
+  return CAM[ad]=c;
+}
+function camYuvarlak(){      // XP yuvarlağının üstüne cam kubbe
+  const {x:cx,y:cy,r}=XPC;
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.clip();
+  let g=ctx.createRadialGradient(cx,cy,r*0.7,cx,cy,r);g.addColorStop(0,'rgba(10,25,45,0)');g.addColorStop(1,'rgba(10,25,45,.3)');ctx.fillStyle=g;ctx.fillRect(cx-r,cy-r,2*r,2*r);      // kenarda iç gölge
+  ctx.save();ctx.translate(cx-r*0.22,cy-r*0.48);ctx.rotate(-0.38);ctx.scale(1,0.5);
+  g=ctx.createLinearGradient(0,-r*0.6,0,r*0.6);g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r*0.62,0,Math.PI*2);ctx.fill();ctx.restore();      // büyük yansıma
+  g=ctx.createRadialGradient(cx+r*0.5,cy+r*0.45,0,cx+r*0.5,cy+r*0.45,r*0.16);g.addColorStop(0,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g;ctx.fillRect(cx-r,cy-r,2*r,2*r);      // alttaki küçük parıltı
+  ctx.restore();
+}
+function barDol(im,f,y0,u0,u1,BEG){
+  if(!im||f<=0.002)return;
+  const uf=u0+(u1-u0)*Math.min(1,f);
+  ctx.save();ctx.beginPath();ctx.moveTo(-2,-2);ctx.lineTo(uf+BEG*(y0+2),-2);ctx.lineTo(uf-BEG*(BARY+2-y0),BARY+2);ctx.lineTo(-2,BARY+2);ctx.closePath();ctx.clip();
+  ctx.drawImage(dkw(im,barGen()),0,0,BARG,BARY);ctx.restore();
+}
+function barCiz(dt){
+  BAR.en+=(S.en-BAR.en)*Math.min(1,dt*8);
+  if(S.hp<BAR.hp||S.hp-BAR.hp>HPMAX*0.4)BAR.hp=Math.max(0,S.hp);else BAR.hp+=(S.hp-BAR.hp)*Math.min(1,dt*6);      // azalınca direkt, dolarken yumuşak
+  const kk=kalpGuncelle();
+  const cer=R.bar_cerceve||R.bar_bos;if(!cer)return;
+  const bw=barGen(),s=bw/BARG;
+  ctx.save();ctx.translate(10,8);ctx.scale(s,s);
+  ctx.drawImage(dkw(cer,barGen()),0,0,BARG,BARY);
+  if(R.bar_cerceve)xpYuvarlak(dt);
+  barDol(R.bar_can,BAR.hp/HPMAX,66.4,261.3,582.0,0.39);      // can
+  if(GR===2&&S.t<(S.ispEnT||0)){ctx.shadowColor='#ffd23f';ctx.shadowBlur=(8+4*Math.sin(S.t*8))*s*DPR}      // ıspanak sonrası enerji parlar
+  barDol(R.bar_en,BAR.en/ENMAX,145.0,262.7,534.6,0.4);      // ince enerji
+  ctx.shadowBlur=0;
+  if(GR>0){const a=camHazirla('can',R.bar_can,30),b=camHazirla('en',R.bar_en,8);if(a)ctx.drawImage(a,0,0,BARG,BARY);if(b)ctx.drawImage(b,0,0,BARG,BARY)}      // bar camları
+  const ki=R.kalp_tek;
+  if(ki&&R.bar_cerceve){const o=kalpOlcek(dt,kk),h=178*o,w=h*ki.width/ki.height;ctx.drawImage(dkw(ki,w*s*1.3),XPC.x+3-w/2,XPC.y+3-h/2,w,h);if(GR>0)camYuvarlak()}      // tek kalp: alttaki küçük kalbi örter; üstüne cam
+  else if(kk&&R.bar_kalp)ctx.drawImage(dkw(R.bar_kalp,barGen()),0,0,BARG,BARY);
+  ctx.restore();
+}
+function hud(dt){
+  if(S.kSon&&S.t-S.kSon.t>0.65&&!S.atk&&!S.kuyruk.length){S.kNo={no:S.kSon.no,t:S.t};kBonus()}      // zincir doğal olarak bitti
+  const bw=Math.min(280,W*0.38),bx=(W-bw)/2,by=12;
+  ctx.fillStyle='#fff';ctx.font='700 13px Nunito,sans-serif';ctx.textBaseline='middle';
+  ctx.lineWidth=3;ctx.strokeStyle='rgba(31,42,51,.9)';ctx.textAlign='left';
+  if(S.kNo&&S.t-S.kNo.t<1.2){const a=Math.min(1,(1.2-(S.t-S.kNo.t))*3);ctx.save();ctx.globalAlpha=a;ctx.font='900 30px Nunito,sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';ctx.lineWidth=5;ctx.strokeStyle='rgba(31,42,51,.95)';ctx.fillStyle='#ffd23f';const nx=Math.max(bx-12,barGen()+60);ctx.strokeText(S.kNo.no,nx,by+6);ctx.fillText(S.kNo.no,nx,by+6);ctx.restore();ctx.font='700 13px Nunito,sans-serif';ctx.textAlign='left';ctx.lineWidth=3;ctx.textBaseline='middle'}
+  barCiz(dt);
+  if(S.t-S.noEn<1.0&&Math.floor((S.t-S.noEn)*8)%2===0){ctx.fillStyle='#ff5a4a';ctx.font='900 14px Nunito,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dil('enerji_yok'),W/2,by+24)}
+  const bs=DUS.find(e=>e.boss&&!e.olu);
+  if(bs){
+    const w2=Math.min(420,W*0.6),x2=(W-w2)/2;
+    const by2=74;
+    ctx.fillStyle='rgba(31,42,51,.85)';ctx.fillRect(x2-3,by2,w2+6,20);
+    ctx.fillStyle='#e8453c';ctx.fillRect(x2,by2+3,w2*Math.max(0,bs.hp/bs.max),14);
+    ctx.fillStyle='#fff';ctx.font='700 12px Nunito,sans-serif';ctx.textAlign='center';ctx.fillText(dil(bs.agil?'boss_bar2':bs.sk&&'yztx'.includes(bs.sk)?'bb_'+bs.sk:'boss_bar'),W/2,by2+10);
+  }
+  if(S.t-S.mesajT<2){
+    ctx.globalAlpha=Math.min(1,2-(S.t-S.mesajT));ctx.textAlign='center';ctx.font='56px Bangers,Impact,sans-serif';ctx.lineWidth=7;ctx.strokeStyle='#1f2a33';
+    const ms=dil(S.mesaj);ctx.strokeText(ms,W/2,H*0.3);ctx.fillStyle='#ffd36b';ctx.fillText(ms,W/2,H*0.3);ctx.globalAlpha=1;
+  }
+  for(let i=S.pops.length-1;i>=0;i--){
+    const p=S.pops[i];p.t+=dt;if(p.t>0.8){S.pops.splice(i,1);continue}
+    const x=W/2+(p.x-KX)*SC,y=ZY()-(p.y-S.camY)*SC-p.t*90;
+    ctx.globalAlpha=1-p.t/0.8;ctx.font=(22+14*p.f)+'px Bangers,Impact,sans-serif';ctx.textAlign='center';
+    ctx.lineWidth=5;ctx.strokeStyle='#fff';ctx.strokeText(p.txt,x,y);ctx.fillStyle=p.mavi?'#2f7fe0':'#e8453c';ctx.fillText(p.txt,x,y);ctx.globalAlpha=1;
+  }
+  if(S.durum!=='oyun'&&(S.durum!=='yenildi'||S.t-S.durumT>3.0)){      // yenilince önce ölüm animasyonu oynar, yazı sonra gelir
+    ctx.fillStyle='rgba(31,42,51,.55)';ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';ctx.font='64px Bangers,Impact,sans-serif';ctx.lineWidth=8;ctx.strokeStyle='#1f2a33';
+    const t=dil(S.durum==='tamam'?'tamam':S.tamSif?'tam_son':'yenildin');      // tam sıfırlama: OYUN BİTTİ
+    ctx.strokeText(t,W/2,H*0.4);ctx.fillStyle=S.durum==='tamam'?'#ffd36b':'#e8453c';ctx.fillText(t,W/2,H*0.4);
+    ctx.font='700 18px Nunito,sans-serif';ctx.fillStyle='#fff';ctx.fillText(dil('tekrar'),W/2,H*0.4+50);
+  }
+}
