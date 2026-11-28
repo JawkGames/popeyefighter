@@ -456,3 +456,6 @@ Her zaman açık: yumruk kombo, tekme, blok. Diğerleri ağaçtan puanla (1–3)
 
 ## v0.496
 - Madenci (`r`) kalçası 14 birim öne. Kovboy (`q`) ve Demir Şerif (`x`) arka bacak kökü 16 birim öne (kalçanın içinden çıkar). Demir Şerif ve kapüşonlu bataklık avcısının (`v`) alt bacak görseli 8° saat yönü tersine çevrildi (`bR`, yeni ayar: alt bacak görselini dikleştirme açısı), alt bacak dik durur.
+
+## v0.497
+- AAB sürümü (v0.487–v0.496 içeriği); kod değişikliği yok.
