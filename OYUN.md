@@ -408,3 +408,6 @@ Her zaman açık: yumruk kombo, tekme, blok. Diğerleri ağaçtan puanla (1–3)
   - Boss `m_boss`: "Epic Boss Battle [Seamlessly Looping]" (Juhani Junkala) — Buz Lordu, Firavun, Yosun Lordu, Demir Şerif. Kaptan `bgm_silah`, Kılıç Ustası `bgm_kilic` (eski müzikleri).
 - Müzik o bölüme gelince indirilir, başka bölümünki bellekten çıkar; hazır olana kadar eski ortam müziği (`bgm_ambient`) çalar.
 - **Büyücü kadın (`w_`, 5–6. bölüm):** asasından ateş büyüsü atar (`parca/misir/w_buyu.webp`, ses `ses/buyu.mp3`, mermi hızının %80'i; hasar aynı). Silah patlama efekti, tabanca hazırlık ve patlama sesi bu karakterde yok.
+
+## v0.486
+- AAB sürümü (v0.484 + v0.485 içeriği); kod değişikliği yok.
